@@ -99,7 +99,7 @@ class OpenAIResponse:
         if len(response_text) == 0:
             
             if user_id not in user_states:
-                return 'สวัสดีจ้า ฉันคือผู้ช่วยประเมินอาการซึมเศร้า หากคุณต้องการรับการประเมินก็กดปุ่มที่เมนูได้เลยนะ'
+                return 'สวัสดีจ้า ฉันคือผู้ช่วยประเมินอาการซึมเศร้า หากคุณต้องการรับการประเมินก็กดปุ่มที่เมนูได้เลย คุณสามารถตอบด้วยเสียงได้ด้วยนะ'
             
             qs_form = user_states[user_id]['qs_form']
             question = user_states[user_id]['latest_question']
@@ -109,6 +109,7 @@ class OpenAIResponse:
             if score is None:
                 return "ขออภัย ระบบขัดข้อง กรุณาตอบใหม่อีกครั้ง"
             
+            user_states[user_id]['answers'].append(text)
             user_states[user_id]['scores'].append(score)
             user_states[user_id]['reasons'].append(reason)
 
@@ -131,6 +132,7 @@ class OpenAIResponse:
                     'ในช่วงนี้ คุณรู้สึกเบื่อ ไม่มีแรงจูงใจ ไม่อยากพูด ไม่อยากทำอะไร หรือทำอะไรก็ไม่สนุกเพลิดเพลินเหมือนเดิมบ้างไหม พอจะเล่าให้ฟังได้ไหมคะ',
                     'ในช่วงหนึ่งเดือนที่ผ่านมานี้ คุณมีความคิดที่ไม่อยากจะมีชีวิตอยู่ต่อไป หรือ บางครั้งเคยมีความคิดอยากตายขึ้นมา หรือ พยายามทำให้ตัวเองจากไปไหมคะ'
                     ],
+                'answers': [],
                 'scores': [],
                 'reasons': [],
                 'latest_question': None
@@ -143,6 +145,7 @@ class OpenAIResponse:
                     'ในช่วงนี้ คุณรู้สึกเบื่อ ไม่มีแรงจูงใจ ไม่อยากพูด ไม่อยากทำอะไร หรือทำอะไรก็ไม่สนุกเพลิดเพลินเหมือนเดิมบ้างไหม พอจะเล่าให้ฟังได้ไหมคะ',
                     'ในช่วงหนึ่งเดือนที่ผ่านมานี้ คุณมีความคิดที่ไม่อยากจะมีชีวิตอยู่ต่อไป หรือ บางครั้งเคยมีความคิดอยากตายขึ้นมา หรือ พยายามทำให้ตัวเองจากไปไหมคะ'
                     ],
+                'answers': [],
                 'scores': [],
                 'reasons': [],
                 'latest_question': None
@@ -153,6 +156,7 @@ class OpenAIResponse:
     
     def get_final_response(self, qs_form, user_states):
 
+        answers = user_states['answers']
         scores = user_states['scores']
         reasons = user_states['reasons']
 
@@ -175,6 +179,8 @@ class OpenAIResponse:
 
 1. ไม่สบายใจ เซ็ง ทุกข์ใจ เศร้า ท้อแท้ ซึม หงอย : {scores[0]}
     
+    Text answer : {answers[0]}
+
     Question : {reasons[0]['Understanding of Question']}
 
     Answer : {reasons[0]['Understanding of Answer']}
@@ -184,6 +190,8 @@ class OpenAIResponse:
 
 2. เบื่อ ไม่อยากพูดไม่อยากทำอะไร หรือทำอะไรก็ไม่สนุกเพลิดเพลินเหมือนเดิม : {scores[1]}
 
+    Text answer : {answers[1]}
+
     Question : {reasons[1]['Understanding of Question']}
 
     Answer : {reasons[1]['Understanding of Answer']}
@@ -192,6 +200,8 @@ class OpenAIResponse:
 
     
 3. มีความรู้สึกทุกข์ใจจนไม่อยากมีชีวิตอยู่ : {scores[2]}
+
+    Text answer : {answers[2]}
 
     Question : {reasons[2]['Understanding of Question']}
 

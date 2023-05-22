@@ -48,6 +48,9 @@ def message_text(event):
     user_id = event.source.user_id
     text = event.message.text
 
+    if user_id in user_states:
+        line_bot_api.push_message(user_id, TextSendMessage(text='กรุณารอสักครู่ ระบบกำลังประมวลผล ...'))
+
     response_text = openai_response.get_response(user_states, user_id, text)
 
     line_bot_api.reply_message(
@@ -59,6 +62,9 @@ def message_text(event):
 def message_audio(event):
 
     user_id = event.source.user_id
+
+    if user_id in user_states:
+        line_bot_api.push_message(user_id, TextSendMessage(text='กรุณารอสักครู่ ระบบกำลังประมวลผล ...'))
 
     message_content = line_bot_api.get_message_content(event.message.id)
     text = asr_pipe.transcribe(message_content)
