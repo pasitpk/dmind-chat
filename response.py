@@ -67,8 +67,8 @@ def request_response(question, text):
                 req_try_count -= 1
 
     if 'yes' in eval_result['Interpretation Result'].lower():
-        return 1
-    return 0
+        return 1, eval_result
+    return 0, eval_result
 
 
 class OpenAIResponse:
@@ -90,6 +90,11 @@ class OpenAIResponse:
             response_text = user_states[user_id]['questions'].pop(0)
             user_states[user_id]['latest_question'] = response_text
 
+        if text.lower() == "<2q+_extra>":
+            user_states[user_id] = self.get_questions("2q+_extra")
+            response_text = user_states[user_id]['questions'].pop(0)
+            user_states[user_id]['latest_question'] = response_text
+
         if len(response_text) == 0:
             
             if user_id not in user_states:
@@ -97,19 +102,21 @@ class OpenAIResponse:
             
             qs_form = user_states[user_id]['qs_form']
             question = user_states[user_id]['latest_question']
-            score = self.get_score(qs_form, question, text)
 
+            score, reason = self.get_score(qs_form, question, text)
+            
             if score is None:
                 return "ขออภัย ระบบขัดข้อง กรุณาตอบใหม่อีกครั้ง"
             
             user_states[user_id]['scores'].append(score)
+            user_states[user_id]['reasons'].append(reason)
 
             if len(user_states[user_id]['questions']) > 0:
                 response_text = user_states[user_id]['questions'].pop(0)
                 user_states[user_id]['latest_question'] = response_text
 
             else:
-                response_text = self.get_final_response(qs_form, user_states[user_id]['scores'])
+                response_text = self.get_final_response(qs_form, user_states[user_id])
                 del user_states[user_id]
 
         return response_text
@@ -124,12 +131,73 @@ class OpenAIResponse:
                     'ในช่วงหนึ่งเดือนที่ผ่านมานี้ คุณมีความคิดที่ไม่อยากจะมีชีวิตอยู่ต่อไป หรือ บางครั้งเคยมีความคิดอยากตายขึ้นมา หรือ พยายามทำให้ตัวเองจากไปไหมคะ'
                     ],
                 'scores': [],
+                'reasons': [],
+                'latest_question': None
+            }
+        if qs_form.lower() == '2q+_extra':
+            return {
+                'qs_form': '2q+_extra',
+                'questions': [
+                    'คุณมีความรู้สึกหดหู่ เศร้า หมดหวัง ไม่สบายใจ เซ็ง ทุกข์ใจ ท้อแท้ ซึม หงอย เครียด กังวล ในเรื่องอะไรบ้างไหมคะ',
+                    'ในช่วงนี้ คุณรู้สึกเบื่อ ไม่มีแรงจูงใจ ไม่อยากพูด ไม่อยากทำอะไร หรือทำอะไรก็ไม่สนุกเพลิดเพลินเหมือนเดิมบ้างไหม พอจะเล่าให้ฟังได้ไหมคะ',
+                    'ในช่วงหนึ่งเดือนที่ผ่านมานี้ คุณมีความคิดที่ไม่อยากจะมีชีวิตอยู่ต่อไป หรือ บางครั้งเคยมีความคิดอยากตายขึ้นมา หรือ พยายามทำให้ตัวเองจากไปไหมคะ'
+                    ],
+                'scores': [],
+                'reasons': [],
                 'latest_question': None
             }
     
     def get_score(self, qs_form, question, text):
         return request_response(question, text)
     
-    def get_final_response(self, qs_form, scores):
+    def get_final_response(self, qs_form, user_states):
+
+        scores = user_states['scores']
+        reasons = user_states['reasons']
+
         if qs_form.lower() == '2q+':
-            return f"สรุปคะแนน 2Q+\n\n1. ไม่สบายใจ เซ็ง ทุกข์ใจ เศร้า ท้อแท้ ซึม หงอย : {scores[0]}\n\n2. เบื่อ ไม่อยากพูดไม่อยากทำอะไร หรือทำอะไรก็ไม่สนุกเพลิดเพลินเหมือนเดิม : {scores[1]}\n\n3. มีความรู้สึกทุกข์ใจจนไม่อยากมีชีวิตอยู่ : {scores[2]}\n\nรวมคะแนน : {sum(scores)}"   
+            return f"""
+สรุปคะแนน 2Q+
+
+1. ไม่สบายใจ เซ็ง ทุกข์ใจ เศร้า ท้อแท้ ซึม หงอย : {scores[0]}
+
+2. เบื่อ ไม่อยากพูดไม่อยากทำอะไร หรือทำอะไรก็ไม่สนุกเพลิดเพลินเหมือนเดิม : {scores[1]}
+
+3. มีความรู้สึกทุกข์ใจจนไม่อยากมีชีวิตอยู่ : {scores[2]}
+
+รวมคะแนน : {sum(scores)}
+"""   
+        
+        if qs_form.lower() == '2q+_extra':
+            return f"""
+สรุปคะแนน 2Q+
+
+1. ไม่สบายใจ เซ็ง ทุกข์ใจ เศร้า ท้อแท้ ซึม หงอย : {scores[0]}
+    
+    Question : {reasons[0]['Understanding of Question']}
+
+    Answer : {reasons[0]['Understanding of Answer']}
+
+    Reason : {reasons[0]['Reason']}
+
+
+2. เบื่อ ไม่อยากพูดไม่อยากทำอะไร หรือทำอะไรก็ไม่สนุกเพลิดเพลินเหมือนเดิม : {scores[1]}
+
+    Question : {reasons[1]['Understanding of Question']}
+
+    Answer : {reasons[1]['Understanding of Answer']}
+
+    Reason : {reasons[1]['Reason']}
+
+    
+3. มีความรู้สึกทุกข์ใจจนไม่อยากมีชีวิตอยู่ : {scores[2]}
+
+    Question : {reasons[2]['Understanding of Question']}
+
+    Answer : {reasons[2]['Understanding of Answer']}
+
+    Reason : {reasons[2]['Reason']}
+
+    
+รวมคะแนน : {sum(scores)}
+"""   
