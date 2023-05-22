@@ -1,4 +1,5 @@
 import json
+import time
 from typing import List, Optional
 from fastapi import HTTPException, Header, Request, FastAPI
 from linebot import LineBotApi, WebhookHandler
@@ -47,23 +48,39 @@ async def callback(request: Request, x_line_signature: str = Header(None)):
 def message_text(event):
     user_id = event.source.user_id
     text = event.message.text
+    timestamp = event.timestamp
 
     if user_id in user_states:
+        
+        # ignore requests when processing
+        if timestamp < user_states[user_id]['latest_response_timestamp']:
+            return        
+        
         line_bot_api.push_message(user_id, TextSendMessage(text='กรุณารอสักครู่ ระบบกำลังประมวลผล ...'))
+        
 
     response_text = openai_response.get_response(user_states, user_id, text)
 
-    line_bot_api.reply_message(
-            event.reply_token, TextSendMessage(text=response_text)
+    line_bot_api.push_message(
+            user_id, TextSendMessage(text=response_text)
         )
+    
+    if user_id in user_states:
+        user_states[user_id]['latest_response_timestamp'] = time.time() * 1000
 
 
 @handler.add(MessageEvent, message=AudioMessage)
 def message_audio(event):
 
     user_id = event.source.user_id
+    timestamp = event.timestamp
 
     if user_id in user_states:
+
+        # ignore requests when processing
+        if timestamp < user_states[user_id]['latest_response_timestamp']:
+            return
+        
         line_bot_api.push_message(user_id, TextSendMessage(text='กรุณารอสักครู่ ระบบกำลังประมวลผล ...'))
 
     message_content = line_bot_api.get_message_content(event.message.id)
@@ -71,8 +88,11 @@ def message_audio(event):
 
     response_text = openai_response.get_response(user_states, user_id, text)
 
-    line_bot_api.reply_message(
-        event.reply_token,
+    line_bot_api.push_message(
+        user_id,
         TextSendMessage(text=response_text)
     )
+
+    if user_id in user_states:
+        user_states[user_id]['latest_response_timestamp'] = time.time() * 1000
 

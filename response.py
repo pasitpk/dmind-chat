@@ -87,12 +87,12 @@ class OpenAIResponse:
                 del user_states[user_id]
             
         if text.lower() == "<2q+>":
-            user_states[user_id] = self.get_questions("2q+")
+            user_states[user_id] = self.gen_state("2q+")
             response_text = user_states[user_id]['questions'].pop(0)
             user_states[user_id]['latest_question'] = response_text
 
         if text.lower() == "<2q+_extra>":
-            user_states[user_id] = self.get_questions("2q+_extra")
+            user_states[user_id] = self.gen_state("2q+_extra")
             response_text = user_states[user_id]['questions'].pop(0)
             user_states[user_id]['latest_question'] = response_text
 
@@ -123,7 +123,7 @@ class OpenAIResponse:
 
         return response_text
     
-    def get_questions(self, qs_form):
+    def gen_state(self, qs_form):
         if qs_form.lower() == '2q+':
             return {
                 'qs_form': '2q+',
@@ -135,7 +135,8 @@ class OpenAIResponse:
                 'answers': [],
                 'scores': [],
                 'reasons': [],
-                'latest_question': None
+                'latest_question': None,
+                'latest_response_timestamp': 0,
             }
         if qs_form.lower() == '2q+_extra':
             return {
@@ -148,7 +149,8 @@ class OpenAIResponse:
                 'answers': [],
                 'scores': [],
                 'reasons': [],
-                'latest_question': None
+                'latest_question': None,
+                'latest_response_timestamp': 0,
             }
     
     def get_score(self, qs_form, question, text):
