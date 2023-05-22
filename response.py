@@ -83,7 +83,8 @@ class OpenAIResponse:
 
         if text.lower() == "<end>":        
             response_text = "ขอบคุณที่มาคุยกันนะ"
-            del user_states[user_id]
+            if user_id in user_states:
+                del user_states[user_id]
             
         if text.lower() == "<2q+>":
             user_states[user_id] = self.get_questions("2q+")
