@@ -22,13 +22,13 @@ def gpt_request(model, message):
     return reply
 
 
-def request_response(question, text):
+def request_response(qs_id, question, text):
     try_count = max_try
     output = None
     while try_count > 0:
         try_count-=1
         try:
-            message = get_prompt(question, text)
+            message = get_prompt(qs_id, question, text)
             output = gpt_request(model, message)
             break
         except Exception as e:
@@ -54,7 +54,7 @@ def request_response(question, text):
             if try_count == 0:
                 print('Max tries reached, UNSUCCESSFUL')
                 break
-            message = get_edited_prompt(question, text, output)
+            message = get_edited_prompt(qs_id, question, text, output)
             req_try_count = max_try
             while req_try_count > 0:
                 try:
@@ -105,9 +105,10 @@ class OpenAIResponse:
             
             qs_form = user_states[user_id]['qs_form']
             latest_idx = user_states[user_id]['latest_question_index']
+            qs_id = user_states[user_id]['qs_ids'][latest_idx]
             promt_question = user_states[user_id]['prompt_questions'][latest_idx]
 
-            score, reason = self.get_score(qs_form, promt_question, text)
+            score, reason = self.get_score(qs_id, promt_question, text)
             
             if score is None:
                 return "ขออภัย ระบบขัดข้อง กรุณาตอบใหม่อีกครั้ง"
@@ -142,6 +143,11 @@ class OpenAIResponse:
                     'ในช่วงนี้ คุณรู้สึกเบื่อ ไม่มีแรงจูงใจ ไม่อยากพูด ไม่อยากทำอะไร หรือทำอะไรก็ไม่สนุกเพลิดเพลินเหมือนเดิมบ้างไหม พอจะเล่าให้ฟังได้ไหมคะ',
                     'ในช่วงหนึ่งเดือนที่ผ่านมานี้ คุณมีความคิดที่ไม่อยากจะมีชีวิตอยู่ต่อไป หรือ บางครั้งเคยมีความคิดอยากตายขึ้นมา หรือ พยายามทำให้ตัวเองจากไปไหมคะ'
                     ],
+                'qs_ids': [
+                    'qs-01-02',
+                    'qs-03',
+                    'qs-07-01',
+                ],
                 'answers': [],
                 'scores': [],
                 'reasons': [],
@@ -161,6 +167,11 @@ class OpenAIResponse:
                     'ในช่วงนี้ คุณรู้สึกเบื่อ ไม่มีแรงจูงใจ ไม่อยากพูด ไม่อยากทำอะไร หรือทำอะไรก็ไม่สนุกเพลิดเพลินเหมือนเดิมบ้างไหม พอจะเล่าให้ฟังได้ไหมคะ',
                     'ในช่วงหนึ่งเดือนที่ผ่านมานี้ คุณมีความคิดที่ไม่อยากจะมีชีวิตอยู่ต่อไป หรือ บางครั้งเคยมีความคิดอยากตายขึ้นมา หรือ พยายามทำให้ตัวเองจากไปไหมคะ'
                     ],
+                'qs_ids': [
+                    'qs-01-02',
+                    'qs-03',
+                    'qs-07-01',
+                ],
                 'answers': [],
                 'scores': [],
                 'reasons': [],
@@ -168,8 +179,8 @@ class OpenAIResponse:
                 'latest_response_timestamp': -1,
             }
     
-    def get_score(self, qs_form, question, text):
-        return request_response(question, text)
+    def get_score(self, qs_id, question, text):
+        return request_response(qs_id, question, text)
     
     def get_final_response(self, qs_form, user_states):
 
