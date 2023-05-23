@@ -51,13 +51,12 @@ def message_text(event):
     timestamp = event.timestamp
 
     if user_id in user_states:
-        
+
         # ignore requests when processing
         if timestamp < user_states[user_id]['latest_response_timestamp']:
             return        
         
         line_bot_api.push_message(user_id, TextSendMessage(text='กรุณารอสักครู่ ระบบกำลังประมวลผล ...'))
-        
 
     response_text = openai_response.get_response(user_states, user_id, text)
 

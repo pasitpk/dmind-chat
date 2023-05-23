@@ -88,13 +88,15 @@ class OpenAIResponse:
             
         if text.lower() == "<2q+>":
             user_states[user_id] = self.gen_state("2q+")
-            response_text = user_states[user_id]['questions'].pop(0)
-            user_states[user_id]['latest_question'] = response_text
+            cur_idx = user_states[user_id]['latest_question_index'] + 1
+            response_text = user_states[user_id]['user_questions'][cur_idx]
+            user_states[user_id]['latest_question_index'] = cur_idx
 
         if text.lower() == "<2q+_extra>":
             user_states[user_id] = self.gen_state("2q+_extra")
-            response_text = user_states[user_id]['questions'].pop(0)
-            user_states[user_id]['latest_question'] = response_text
+            cur_idx = user_states[user_id]['latest_question_index'] + 1
+            response_text = user_states[user_id]['user_questions'][cur_idx]
+            user_states[user_id]['latest_question_index'] = cur_idx
 
         if len(response_text) == 0:
             
@@ -102,9 +104,10 @@ class OpenAIResponse:
                 return 'สวัสดีจ้า ฉันคือผู้ช่วยประเมินอาการซึมเศร้า หากคุณต้องการรับการประเมินก็กดปุ่มที่เมนูได้เลย คุณสามารถตอบด้วยเสียงได้ด้วยนะ'
             
             qs_form = user_states[user_id]['qs_form']
-            question = user_states[user_id]['latest_question']
+            latest_idx = user_states[user_id]['latest_question_index']
+            promt_question = user_states[user_id]['prompt_questions'][latest_idx]
 
-            score, reason = self.get_score(qs_form, question, text)
+            score, reason = self.get_score(qs_form, promt_question, text)
             
             if score is None:
                 return "ขออภัย ระบบขัดข้อง กรุณาตอบใหม่อีกครั้ง"
@@ -113,9 +116,11 @@ class OpenAIResponse:
             user_states[user_id]['scores'].append(score)
             user_states[user_id]['reasons'].append(reason)
 
-            if len(user_states[user_id]['questions']) > 0:
-                response_text = user_states[user_id]['questions'].pop(0)
-                user_states[user_id]['latest_question'] = response_text
+            cur_idx = latest_idx + 1
+
+            if cur_idx < len(user_states[user_id]['user_questions']):
+                response_text = user_states[user_id]['user_questions'][cur_idx]
+                user_states[user_id]['latest_question_index'] = cur_idx
 
             else:
                 response_text = self.get_final_response(qs_form, user_states[user_id])
@@ -127,7 +132,12 @@ class OpenAIResponse:
         if qs_form.lower() == '2q+':
             return {
                 'qs_form': '2q+',
-                'questions': [
+                'user_questions': [
+                    'คุณมีความรู้สึกหดหู่ เศร้า ท้อแท้ หรือ ไม่สบายใจ ในเรื่องอะไรบ้างไหมคะ',
+                    'คุณมีความรู้สึกเบื่อ ไม่อยากพูด ไม่อยากทำอะไร หรือทำอะไรก็ไม่สนุกเพลิดเพลินเหมือนเดิมบ้างไหม พอจะเล่าให้ฟังได้ไหมคะ',
+                    'ในช่วงหนึ่งเดือนที่ผ่านมานี้ คุณมีความรู้สึกทุกข์ใจจนไม่อยากมีชีวิตอยู่บ้างไหมคะ'
+                    ],
+                'prompt_questions': [
                     'คุณมีความรู้สึกหดหู่ เศร้า หมดหวัง ไม่สบายใจ เซ็ง ทุกข์ใจ ท้อแท้ ซึม หงอย เครียด กังวล ในเรื่องอะไรบ้างไหมคะ',
                     'ในช่วงนี้ คุณรู้สึกเบื่อ ไม่มีแรงจูงใจ ไม่อยากพูด ไม่อยากทำอะไร หรือทำอะไรก็ไม่สนุกเพลิดเพลินเหมือนเดิมบ้างไหม พอจะเล่าให้ฟังได้ไหมคะ',
                     'ในช่วงหนึ่งเดือนที่ผ่านมานี้ คุณมีความคิดที่ไม่อยากจะมีชีวิตอยู่ต่อไป หรือ บางครั้งเคยมีความคิดอยากตายขึ้นมา หรือ พยายามทำให้ตัวเองจากไปไหมคะ'
@@ -135,13 +145,18 @@ class OpenAIResponse:
                 'answers': [],
                 'scores': [],
                 'reasons': [],
-                'latest_question': None,
-                'latest_response_timestamp': 0,
+                'latest_question_index': -1,
+                'latest_response_timestamp': -1,
             }
         if qs_form.lower() == '2q+_extra':
             return {
                 'qs_form': '2q+_extra',
-                'questions': [
+                'user_questions': [
+                    'คุณมีความรู้สึกหดหู่ เศร้า ท้อแท้ หรือ ไม่สบายใจ ในเรื่องอะไรบ้างไหมคะ',
+                    'คุณมีความรู้สึกเบื่อ ไม่อยากพูด ไม่อยากทำอะไร หรือทำอะไรก็ไม่สนุกเพลิดเพลินเหมือนเดิมบ้างไหม พอจะเล่าให้ฟังได้ไหมคะ',
+                    'ในช่วงหนึ่งเดือนที่ผ่านมานี้ คุณมีความรู้สึกทุกข์ใจจนไม่อยากมีชีวิตอยู่บ้างไหมคะ'
+                    ],
+                'prompt_questions': [
                     'คุณมีความรู้สึกหดหู่ เศร้า หมดหวัง ไม่สบายใจ เซ็ง ทุกข์ใจ ท้อแท้ ซึม หงอย เครียด กังวล ในเรื่องอะไรบ้างไหมคะ',
                     'ในช่วงนี้ คุณรู้สึกเบื่อ ไม่มีแรงจูงใจ ไม่อยากพูด ไม่อยากทำอะไร หรือทำอะไรก็ไม่สนุกเพลิดเพลินเหมือนเดิมบ้างไหม พอจะเล่าให้ฟังได้ไหมคะ',
                     'ในช่วงหนึ่งเดือนที่ผ่านมานี้ คุณมีความคิดที่ไม่อยากจะมีชีวิตอยู่ต่อไป หรือ บางครั้งเคยมีความคิดอยากตายขึ้นมา หรือ พยายามทำให้ตัวเองจากไปไหมคะ'
@@ -149,8 +164,8 @@ class OpenAIResponse:
                 'answers': [],
                 'scores': [],
                 'reasons': [],
-                'latest_question': None,
-                'latest_response_timestamp': 0,
+                'latest_question_index': -1,
+                'latest_response_timestamp': -1,
             }
     
     def get_score(self, qs_form, question, text):
