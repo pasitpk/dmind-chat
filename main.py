@@ -14,9 +14,8 @@ with open('config.json', 'r') as f:
 
 line_bot_api = LineBotApi(config['LINE_CHANNEL_ACCESS_TOKEN'])
 handler = WebhookHandler(config['LINE_CHANNEL_SECRET'])
-asr_pipe_path = config['ASR_PIPE']
 
-asr_pipe = ASRPipe(asr_pipe_path)
+asr_pipe = ASRPipe(config['GOOGLE_KEY_FILE'])
 
 openai_response = OpenAIResponse(config['OPENAI_KEY'])
 
@@ -83,9 +82,17 @@ def message_audio(event):
         line_bot_api.push_message(user_id, TextSendMessage(text='กรุณารอสักครู่ ระบบกำลังประมวลผล ...'))
 
     message_content = line_bot_api.get_message_content(event.message.id)
-    text = asr_pipe.transcribe(message_content)
-
-    response_text = openai_response.get_response(user_states, user_id, text)
+    
+    try:
+        text = asr_pipe.transcribe(message_content)
+    except Exception as e:
+        print(e)
+        text = None
+    
+    if text is not None:
+        response_text = openai_response.get_response(user_states, user_id, text)
+    else:
+        response_text = 'ขออภัย ระบบขัดข้อง กรุณาตอบใหม่อีกครั้ง'
 
     line_bot_api.push_message(
         user_id,
